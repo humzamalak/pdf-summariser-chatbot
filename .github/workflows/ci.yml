@@ -23,3 +23,19 @@ jobs:
       - run: ruff check --output-format github .
       - run: ruff format --check .
       - run: pytest --cov=pdfbot --cov-fail-under=85
+
+  docker:
+    name: Docker build and smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t pdfbot:ci .
+      - name: Start the container and check the health endpoint
+        run: |
+          docker run -d --rm --name pdfbot -p 8501:8501 pdfbot:ci
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8501/_stcore/health && exit 0
+            sleep 2
+          done
+          docker logs pdfbot
+          exit 1
